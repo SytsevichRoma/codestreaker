@@ -1,5 +1,6 @@
 import json
 import logging
+import urllib.parse
 from pathlib import Path
 from typing import Any
 
@@ -23,21 +24,48 @@ app.mount("/static", StaticFiles(directory=str(base_dir / "static")), name="stat
 templates = Jinja2Templates(directory=str(base_dir / "templates"))
 
 
-def _get_init_data(request: Request) -> str:
-    return request.query_params.get("initData") or request.headers.get("X-Init-Data", "")
+async def _get_init_data(request: Request) -> str:
+    init_data = request.query_params.get("initData")
+    if init_data:
+        return init_data
+    for header_name in ("X-Telegram-Init-Data", "X-Init-Data"):
+        init_data = request.headers.get(header_name)
+        if init_data:
+            return init_data
+    body = await request.body()
+    if not body:
+        return ""
+    try:
+        payload = await request.json()
+        if isinstance(payload, dict):
+            init_data = payload.get("initData")
+            if init_data:
+                return init_data
+    except Exception:
+        pass
+    try:
+        parsed = urllib.parse.parse_qs(body.decode("utf-8"), keep_blank_values=True)
+        return parsed.get("initData", [""])[0]
+    except Exception:
+        return ""
 
 
 async def _get_user_from_init(request: Request) -> dict[str, Any]:
-    init_data = _get_init_data(request)
+    init_data = await _get_init_data(request)
     if not init_data:
+        log.warning("initData validation failed: missing_init_data")
         raise HTTPException(status_code=401, detail="Missing initData")
     try:
-        parsed = validate_init_data(init_data, settings.secret_key)
+        parsed = validate_init_data(init_data, settings.bot_token)
         user_raw = parsed["raw"].get("user", ["{}"])[0]
         user = json.loads(user_raw)
         return user
+    except ValueError as exc:
+        reason = str(exc) or "validation_error"
+        log.warning("initData validation failed: %s", reason)
+        raise HTTPException(status_code=401, detail="Invalid initData") from exc
     except Exception as exc:
-        log.warning("initData validation failed: %s", exc)
+        log.warning("initData validation failed: unexpected_error:%s", type(exc).__name__)
         raise HTTPException(status_code=401, detail="Invalid initData") from exc
 
 

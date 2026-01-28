@@ -1,11 +1,12 @@
-const tg = window.Telegram.WebApp;
+const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
 
-tg.ready();
-
-tg.expand();
+if (tg) {
+  tg.ready();
+  tg.expand();
+}
 
 const state = {
-  initData: tg.initData || "",
+  initData: "",
   goals: { github_commits: 2, leetcode_solved: 2 },
 };
 
@@ -22,12 +23,25 @@ async function apiPost(url, body) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Init-Data": state.initData,
+      "X-Telegram-Init-Data": state.initData,
     },
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error("Request failed");
   return res.json();
+}
+
+function showError(message) {
+  const banner = document.getElementById("error-banner");
+  if (!banner) return;
+  banner.textContent = message;
+  banner.style.display = "block";
+}
+
+function clearError() {
+  const banner = document.getElementById("error-banner");
+  if (!banner) return;
+  banner.style.display = "none";
 }
 
 function fillStatus(data) {
@@ -62,20 +76,29 @@ function setSegmentDefaults() {
   });
 }
 
-async function refresh() {
+async function loadStatus() {
+  state.initData = tg ? tg.initData || "" : "";
   if (!state.initData) {
+    console.warn("Missing Telegram initData; open inside Telegram.");
+    showError("WebApp init data missing. Open this dashboard from Telegram.");
     document.getElementById("date").textContent = "Open inside Telegram";
     return;
   }
-  const data = await apiGet("/api/status");
-  fillStatus(data);
+  clearError();
+  try {
+    const data = await apiGet("/api/status");
+    fillStatus(data);
+  } catch (err) {
+    console.error("Failed to load status:", err);
+    showError("Failed to load status. Please try again.");
+  }
 }
 
 async function saveGoals() {
   const gh = Number(document.getElementById("goal-github").value || 0);
   const lc = Number(document.getElementById("goal-leetcode").value || 0);
   await apiPost("/api/settings", { goals: { github_commits: gh, leetcode_solved: lc } });
-  await refresh();
+  await loadStatus();
 }
 
 async function saveReminders() {
@@ -83,28 +106,30 @@ async function saveReminders() {
   const r2 = document.getElementById("reminder-2").value;
   const reminders = [r1, r2].filter(Boolean);
   await apiPost("/api/settings", { reminders });
-  await refresh();
+  await loadStatus();
 }
 
 async function saveRepos() {
   const text = document.getElementById("repos").value;
   const repos = text.split(",").map((r) => r.trim()).filter(Boolean);
   await apiPost("/api/settings", { repos });
-  await refresh();
+  await loadStatus();
 }
 
 function openBotLink(command) {
   if (!botUsername) return;
   const url = `https://t.me/${botUsername}?start=${command}`;
-  tg.openTelegramLink(url);
+  if (tg) tg.openTelegramLink(url);
 }
 
-document.getElementById("refresh").addEventListener("click", refresh);
-document.getElementById("save-goals").addEventListener("click", saveGoals);
-document.getElementById("save-reminders").addEventListener("click", saveReminders);
-document.getElementById("save-repos").addEventListener("click", saveRepos);
-document.getElementById("open-settings").addEventListener("click", () => openBotLink("settings"));
-document.getElementById("open-status").addEventListener("click", () => openBotLink("status"));
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("refresh").addEventListener("click", loadStatus);
+  document.getElementById("save-goals").addEventListener("click", saveGoals);
+  document.getElementById("save-reminders").addEventListener("click", saveReminders);
+  document.getElementById("save-repos").addEventListener("click", saveRepos);
+  document.getElementById("open-settings").addEventListener("click", () => openBotLink("settings"));
+  document.getElementById("open-status").addEventListener("click", () => openBotLink("status"));
 
-setSegmentDefaults();
-refresh();
+  setSegmentDefaults();
+  loadStatus();
+});
