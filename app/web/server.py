@@ -1,6 +1,7 @@
 import json
 import logging
 import urllib.parse
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -126,6 +127,22 @@ async def api_status(request: Request):
             "reminders": json.loads(db_user["reminders_json"]),
             "repos": repos,
             "streak": streak_info,
+        }
+    )
+
+
+@app.get("/healthz")
+async def healthz():
+    db_ok = True
+    try:
+        await repo.fetchone("SELECT 1")
+    except Exception:
+        db_ok = False
+    return JSONResponse(
+        {
+            "ok": db_ok,
+            "db": db_ok,
+            "time": datetime.now(timezone.utc).isoformat(),
         }
     )
 
