@@ -8,27 +8,66 @@ if (tg) {
 const state = {
   initData: "",
   goals: { github_commits: 2, leetcode_solved: 2 },
+  avatar: "🐶",
 };
 
 const botUsername = window.__BOT_USERNAME__ || "";
 
+let loadingCount = 0;
+
+function setButtonsDisabled(disabled) {
+  document.querySelectorAll("button").forEach((btn) => {
+    btn.disabled = disabled;
+  });
+}
+
+function showLoading() {
+  loadingCount += 1;
+  if (loadingCount === 1) {
+    document.body.classList.add("is-loading");
+    const overlay = document.getElementById("loading-overlay");
+    if (overlay) overlay.classList.add("is-visible");
+    setButtonsDisabled(true);
+  }
+}
+
+function hideLoading() {
+  loadingCount = Math.max(loadingCount - 1, 0);
+  if (loadingCount === 0) {
+    document.body.classList.remove("is-loading");
+    const overlay = document.getElementById("loading-overlay");
+    if (overlay) overlay.classList.remove("is-visible");
+    setButtonsDisabled(false);
+  }
+}
+
 async function apiGet(url) {
-  const res = await fetch(`${url}?initData=${encodeURIComponent(state.initData)}`);
-  if (!res.ok) throw new Error("Request failed");
-  return res.json();
+  showLoading();
+  try {
+    const res = await fetch(`${url}?initData=${encodeURIComponent(state.initData)}`);
+    if (!res.ok) throw new Error("Request failed");
+    return res.json();
+  } finally {
+    hideLoading();
+  }
 }
 
 async function apiPost(url, body) {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Telegram-Init-Data": state.initData,
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error("Request failed");
-  return res.json();
+  showLoading();
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Telegram-Init-Data": state.initData,
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error("Request failed");
+    return res.json();
+  } finally {
+    hideLoading();
+  }
 }
 
 function showError(message) {
@@ -59,6 +98,10 @@ function fillStatus(data) {
   document.getElementById("reminder-1").value = data.reminders[0] || "";
   document.getElementById("reminder-2").value = data.reminders[1] || "";
   document.getElementById("repos").value = data.repos.join(", ");
+  if (data.avatar) {
+    state.avatar = data.avatar;
+  }
+  renderAvatarBadge();
 }
 
 function setSegmentDefaults() {
@@ -131,9 +174,68 @@ function triggerHapticLight() {
   }
 }
 
+const AVATARS = ["🐶", "🐱", "🦊", "🐻", "🐼", "🐸", "🐵", "🐯", "🐨", "🦁"];
+
+function renderAvatarBadge() {
+  const badge = document.getElementById("avatar-badge");
+  if (badge) badge.textContent = state.avatar || "🐶";
+}
+
+function renderAvatarGrid() {
+  const grid = document.getElementById("avatar-grid");
+  if (!grid) return;
+  grid.innerHTML = "";
+  AVATARS.forEach((emoji) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "avatar-option ios-tap ios-card";
+    btn.dataset.avatar = emoji;
+    btn.textContent = emoji;
+    if (emoji === state.avatar) btn.classList.add("selected");
+    btn.addEventListener("click", async () => {
+      if (state.avatar === emoji) {
+        closeAvatarSheet();
+        return;
+      }
+      state.avatar = emoji;
+      renderAvatarBadge();
+      renderAvatarGrid();
+      triggerHapticLight();
+      try {
+        await apiPost("/api/settings", { avatar: emoji });
+      } catch (err) {
+        console.error("Failed to save avatar:", err);
+        showError("Failed to save avatar. Please try again.");
+      }
+      closeAvatarSheet();
+    });
+    grid.appendChild(btn);
+  });
+  initIosTap();
+}
+
+function openAvatarSheet() {
+  const sheet = document.getElementById("avatar-sheet");
+  const backdrop = document.getElementById("avatar-backdrop");
+  if (!sheet || !backdrop) return;
+  renderAvatarGrid();
+  sheet.classList.add("is-visible");
+  backdrop.classList.add("is-visible");
+}
+
+function closeAvatarSheet() {
+  const sheet = document.getElementById("avatar-sheet");
+  const backdrop = document.getElementById("avatar-backdrop");
+  if (!sheet || !backdrop) return;
+  sheet.classList.remove("is-visible");
+  backdrop.classList.remove("is-visible");
+}
+
 function initIosTap() {
   const tapTargets = document.querySelectorAll(".ios-tap");
   tapTargets.forEach((el) => {
+    if (el.dataset.iosTapBound === "true") return;
+    el.dataset.iosTapBound = "true";
     const addPressed = () => el.classList.add("is-pressed");
     const removePressed = () => el.classList.remove("is-pressed");
 
@@ -158,12 +260,18 @@ function initIosTap() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  renderAvatarBadge();
   document.getElementById("refresh").addEventListener("click", loadStatus);
   document.getElementById("save-goals").addEventListener("click", saveGoals);
   document.getElementById("save-reminders").addEventListener("click", saveReminders);
   document.getElementById("save-repos").addEventListener("click", saveRepos);
   document.getElementById("open-settings").addEventListener("click", () => openBotLink("settings"));
   document.getElementById("open-status").addEventListener("click", () => openBotLink("status"));
+  document.getElementById("change-avatar").addEventListener("click", openAvatarSheet);
+  document.getElementById("avatar-backdrop").addEventListener("click", closeAvatarSheet);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeAvatarSheet();
+  });
 
   initIosTap();
   setSegmentDefaults();

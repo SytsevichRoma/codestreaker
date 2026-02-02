@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS users (
   tz TEXT NOT NULL,
   github_username TEXT,
   leetcode_username TEXT,
+  avatar TEXT,
   goals_json TEXT NOT NULL,
   reminders_json TEXT NOT NULL,
   repos_json TEXT NOT NULL,

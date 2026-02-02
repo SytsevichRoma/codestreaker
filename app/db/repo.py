@@ -9,6 +9,7 @@ from app.core.config import settings
 DEFAULT_GOALS = {"github_commits": 2, "leetcode_solved": 2}
 DEFAULT_REMINDERS = ["10:00", "21:30"]
 DEFAULT_REPOS: list[str] = []
+DEFAULT_AVATAR = "🐶"
 
 
 async def init_db() -> None:
@@ -16,6 +17,11 @@ async def init_db() -> None:
     async with aiosqlite.connect(settings.database_path) as db:
         with schema_path.open("r", encoding="utf-8") as f:
             await db.executescript(f.read())
+        cursor = await db.execute("PRAGMA table_info(users)")
+        columns = [row[1] for row in await cursor.fetchall()]
+        await cursor.close()
+        if "avatar" not in columns:
+            await db.execute("ALTER TABLE users ADD COLUMN avatar TEXT")
         await db.commit()
 
 
@@ -52,12 +58,13 @@ async def create_user(telegram_id: int, tz: str) -> dict[str, Any]:
     repos = json.dumps(DEFAULT_REPOS)
     async with aiosqlite.connect(settings.database_path) as db:
         await db.execute(
-            "INSERT OR IGNORE INTO users (telegram_id, tz, github_username, leetcode_username, goals_json, reminders_json, repos_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT OR IGNORE INTO users (telegram_id, tz, github_username, leetcode_username, avatar, goals_json, reminders_json, repos_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 telegram_id,
                 tz,
                 settings.default_github_username,
                 settings.default_leetcode_username,
+                DEFAULT_AVATAR,
                 goals,
                 reminders,
                 repos,

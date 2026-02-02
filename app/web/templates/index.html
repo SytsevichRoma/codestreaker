@@ -21,7 +21,13 @@
             <div class="subtitle">Daily commit + solve streaks</div>
           </div>
         </div>
-        <button class="pill ios-tap ios-button" id="refresh">Refresh</button>
+        <div class="header-actions">
+          <button class="avatar-chip ios-tap ios-button" id="change-avatar" type="button">
+            <span class="avatar-badge" id="avatar-badge">🐶</span>
+            <span>Change</span>
+          </button>
+          <button class="pill ios-tap ios-button" id="refresh" type="button">Refresh</button>
+        </div>
       </header>
 
       <section class="card status ios-tap ios-card">
@@ -93,6 +99,17 @@
         <button class="ghost ios-tap ios-button" id="open-settings">Open bot settings</button>
         <button class="ghost ios-tap ios-button" id="open-status">Check bot status</button>
       </section>
+    </div>
+
+    <div class="loading-overlay" id="loading-overlay" aria-hidden="true">
+      <div class="spinner" role="status" aria-label="Loading"></div>
+    </div>
+
+    <div class="ios-sheet-backdrop" id="avatar-backdrop" aria-hidden="true"></div>
+    <div class="ios-sheet" id="avatar-sheet" role="dialog" aria-modal="true" aria-label="Choose avatar">
+      <div class="sheet-handle"></div>
+      <h3>Choose avatar</h3>
+      <div class="avatar-grid" id="avatar-grid"></div>
     </div>
 
     <script>

@@ -127,6 +127,7 @@ async def api_status(request: Request):
             "reminders": json.loads(db_user["reminders_json"]),
             "repos": repos,
             "streak": streak_info,
+            "avatar": db_user.get("avatar"),
         }
     )
 
@@ -174,6 +175,8 @@ async def api_settings(request: Request):
         updates["github_username"] = payload["github_username"]
     if "leetcode_username" in payload:
         updates["leetcode_username"] = payload["leetcode_username"]
+    if "avatar" in payload:
+        updates["avatar"] = payload["avatar"]
 
     if updates:
         await repo.update_user_fields(telegram_id, **updates)
