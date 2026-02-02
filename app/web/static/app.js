@@ -122,6 +122,41 @@ function openBotLink(command) {
   if (tg) tg.openTelegramLink(url);
 }
 
+function triggerHapticLight() {
+  if (!tg || !tg.HapticFeedback || typeof tg.HapticFeedback.impactOccurred !== "function") return;
+  try {
+    tg.HapticFeedback.impactOccurred("light");
+  } catch (err) {
+    console.warn("Haptic feedback unavailable:", err);
+  }
+}
+
+function initIosTap() {
+  const tapTargets = document.querySelectorAll(".ios-tap");
+  tapTargets.forEach((el) => {
+    const addPressed = () => el.classList.add("is-pressed");
+    const removePressed = () => el.classList.remove("is-pressed");
+
+    el.addEventListener("pointerdown", (event) => {
+      if (event.button !== undefined && event.button !== 0) return;
+      addPressed();
+      if (el.classList.contains("ios-button") || el.tagName === "BUTTON") {
+        triggerHapticLight();
+      }
+    });
+    el.addEventListener("pointerup", removePressed);
+    el.addEventListener("pointerleave", removePressed);
+    el.addEventListener("pointercancel", removePressed);
+    el.addEventListener("blur", removePressed);
+    el.addEventListener("keydown", (event) => {
+      if (event.key === " " || event.key === "Enter") addPressed();
+    });
+    el.addEventListener("keyup", (event) => {
+      if (event.key === " " || event.key === "Enter") removePressed();
+    });
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("refresh").addEventListener("click", loadStatus);
   document.getElementById("save-goals").addEventListener("click", saveGoals);
@@ -130,6 +165,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("open-settings").addEventListener("click", () => openBotLink("settings"));
   document.getElementById("open-status").addEventListener("click", () => openBotLink("status"));
 
+  initIosTap();
   setSegmentDefaults();
   loadStatus();
 });

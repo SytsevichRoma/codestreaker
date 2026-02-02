@@ -21,10 +21,10 @@
             <div class="subtitle">Daily commit + solve streaks</div>
           </div>
         </div>
-        <button class="pill" id="refresh">Refresh</button>
+        <button class="pill ios-tap ios-button" id="refresh">Refresh</button>
       </header>
 
-      <section class="card status">
+      <section class="card status ios-tap ios-card">
         <div class="card-header">
           <h2>Today</h2>
           <span id="date">—</span>
@@ -53,12 +53,12 @@
         </div>
       </section>
 
-      <section class="card settings">
+      <section class="card settings ios-tap ios-card">
         <h2>Goals</h2>
         <div class="segmented">
-          <button class="seg-btn" data-goal="low">Low</button>
-          <button class="seg-btn active" data-goal="default">Default</button>
-          <button class="seg-btn" data-goal="high">High</button>
+          <button class="seg-btn ios-tap ios-button" data-goal="low">Low</button>
+          <button class="seg-btn ios-tap ios-button active" data-goal="default">Default</button>
+          <button class="seg-btn ios-tap ios-button" data-goal="high">High</button>
         </div>
         <div class="goal-grid">
           <div class="goal-item">
@@ -70,28 +70,28 @@
             <input type="number" min="0" id="goal-leetcode" />
           </div>
         </div>
-        <button class="primary" id="save-goals">Save goals</button>
+        <button class="primary ios-tap ios-button" id="save-goals">Save goals</button>
       </section>
 
-      <section class="card settings">
+      <section class="card settings ios-tap ios-card">
         <h2>Reminders</h2>
         <div class="reminders">
           <input type="time" id="reminder-1" />
           <input type="time" id="reminder-2" />
         </div>
-        <button class="primary" id="save-reminders">Save reminders</button>
+        <button class="primary ios-tap ios-button" id="save-reminders">Save reminders</button>
       </section>
 
-      <section class="card settings">
+      <section class="card settings ios-tap ios-card">
         <h2>Repos filter</h2>
         <p class="hint">Comma-separated owner/repo. Leave empty to count all repos.</p>
         <textarea id="repos" rows="2" placeholder="owner/repo, owner2/repo2"></textarea>
-        <button class="primary" id="save-repos">Save repos</button>
+        <button class="primary ios-tap ios-button" id="save-repos">Save repos</button>
       </section>
 
       <section class="quick-actions">
-        <button class="ghost" id="open-settings">Open bot settings</button>
-        <button class="ghost" id="open-status">Check bot status</button>
+        <button class="ghost ios-tap ios-button" id="open-settings">Open bot settings</button>
+        <button class="ghost ios-tap ios-button" id="open-status">Check bot status</button>
       </section>
     </div>
 
