@@ -261,13 +261,13 @@ function initIosTap() {
 
 document.addEventListener("DOMContentLoaded", () => {
   renderAvatarBadge();
-  document.getElementById("refresh").addEventListener("click", loadStatus);
+  document.getElementById("btnRefresh").addEventListener("click", loadStatus);
   document.getElementById("save-goals").addEventListener("click", saveGoals);
   document.getElementById("save-reminders").addEventListener("click", saveReminders);
   document.getElementById("save-repos").addEventListener("click", saveRepos);
   document.getElementById("open-settings").addEventListener("click", () => openBotLink("settings"));
   document.getElementById("open-status").addEventListener("click", () => openBotLink("status"));
-  document.getElementById("change-avatar").addEventListener("click", openAvatarSheet);
+  document.getElementById("btnAvatar").addEventListener("click", openAvatarSheet);
   document.getElementById("avatar-backdrop").addEventListener("click", closeAvatarSheet);
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeAvatarSheet();

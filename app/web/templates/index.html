@@ -13,20 +13,39 @@
       <div id="error-banner" style="display: none; padding: 12px 14px; margin-bottom: 16px; border-radius: 12px; background: #3a1f1f; color: #ffd7d7; border: 1px solid #5a2b2b;">
         Error loading status.
       </div>
-      <header class="header">
-        <div class="logo">
-          <div class="logo-mark">CS</div>
-          <div>
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="app-icon">CS</div>
+          <div class="topbar-title">
             <div class="title">CodeStreaker</div>
             <div class="subtitle">Daily commit + solve streaks</div>
           </div>
         </div>
-        <div class="header-actions">
-          <button class="avatar-chip ios-tap ios-button" id="change-avatar" type="button">
+        <div class="topbar-actions">
+          <button class="pill-btn ios-tap ios-button" id="btnAvatar" type="button">
             <span class="avatar-badge" id="avatar-badge">🐶</span>
-            <span>Change</span>
+            <span>Avatar</span>
           </button>
-          <button class="pill ios-tap ios-button" id="refresh" type="button">Refresh</button>
+          <button class="pill-btn ios-tap ios-button" id="btnRefresh" type="button">
+            <span class="pill-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M20 12a8 8 0 1 1-2.34-5.66"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M20 4v6h-6"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </span>
+            <span>Refresh</span>
+          </button>
         </div>
       </header>
 
