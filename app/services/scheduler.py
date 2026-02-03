@@ -90,13 +90,19 @@ class ReminderScheduler:
             {"github_commits": github_commits, "leetcode_solved": leetcode_solved},
         )
 
-        if github_commits >= goals["github_commits"] and leetcode_solved >= goals["leetcode_solved"]:
+        gh_goal = int(goals.get("github_commits", 0))
+        lc_goal = int(goals.get("leetcode_solved", 0))
+        gh_left = max(gh_goal - int(github_commits), 0)
+        lc_left = max(lc_goal - int(leetcode_solved), 0)
+
+        if gh_left == 0 and lc_left == 0:
+            log.info("Reminder skipped: goals completed for %s on %s", telegram_id, today.isoformat())
             return
 
         msg = (
-            "⏰ Reminder!\n"
-            f"GitHub commits today: {github_commits}/{goals['github_commits']}\n"
-            f"LeetCode solved today: {leetcode_solved}/{goals['leetcode_solved']}"
+            "⏰ Quick reminder\n"
+            f"GitHub: {gh_left} commit{'s' if gh_left != 1 else ''} left\n"
+            f"LeetCode: {lc_left} solve{'s' if lc_left != 1 else ''} left"
         )
         try:
             await self.bot.send_message(telegram_id, msg)
