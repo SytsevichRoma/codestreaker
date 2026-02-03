@@ -9,6 +9,7 @@ const state = {
   initData: "",
   goals: { github_commits: 2, leetcode_solved: 2 },
   avatar: "🐶",
+  celebrated: { github_commits: false, leetcode_solved: false },
 };
 
 const botUsername = window.__BOT_USERNAME__ || "";
@@ -83,6 +84,66 @@ function clearError() {
   banner.style.display = "none";
 }
 
+function setRing(el, current, goal) {
+  if (!el) return;
+  const circle = el.querySelector(".ring-progress");
+  const label = el.querySelector(".ring-label");
+  const safeGoal = Math.max(Number(goal) || 0, 0);
+  const value = Math.max(Number(current) || 0, 0);
+  const progress = safeGoal > 0 ? Math.min(value / safeGoal, 1) : 0;
+  if (circle) {
+    const radius = Number(circle.getAttribute("r")) || 0;
+    const circumference = 2 * Math.PI * radius;
+    circle.style.strokeDasharray = `${circumference}`;
+    circle.style.strokeDashoffset = `${circumference * (1 - progress)}`;
+  }
+  if (label) {
+    label.textContent = `${value}/${safeGoal}`;
+  }
+}
+
+function launchConfetti(targetEl, palette) {
+  if (!targetEl) return;
+  const burst = document.createElement("div");
+  burst.className = "confetti-burst";
+  const colors = palette && palette.length ? palette : ["#3b82f6", "#5ad0a0", "#94a3b8"];
+  const count = 14;
+  for (let i = 0; i < count; i += 1) {
+    const piece = document.createElement("div");
+    piece.className = "confetti-piece";
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 16 + Math.random() * 14;
+    const x = Math.cos(angle) * distance;
+    const y = Math.sin(angle) * distance;
+    const rotate = (Math.random() * 240 - 120).toFixed(0);
+    const size = 4 + Math.random() * 3;
+    piece.style.width = `${size}px`;
+    piece.style.height = `${size}px`;
+    piece.style.background = colors[i % colors.length];
+    piece.style.setProperty("--x", `${x.toFixed(1)}px`);
+    piece.style.setProperty("--y", `${y.toFixed(1)}px`);
+    piece.style.setProperty("--r", `${rotate}deg`);
+    piece.style.animationDelay = `${(Math.random() * 120).toFixed(0)}ms`;
+    burst.appendChild(piece);
+  }
+  targetEl.appendChild(burst);
+  window.setTimeout(() => {
+    burst.remove();
+  }, 1000);
+}
+
+function maybeCelebrate(metricKey, current, goal, ringEl) {
+  if (!ringEl || goal <= 0) return;
+  if (current >= goal && !state.celebrated[metricKey]) {
+    state.celebrated[metricKey] = true;
+    const palette =
+      metricKey === "github_commits"
+        ? ["#3b82f6", "#7aa7ff", "#c2d7ff"]
+        : ["#5ad0a0", "#8ee8c6", "#c7f4df"];
+    launchConfetti(ringEl, palette);
+  }
+}
+
 function fillStatus(data) {
   document.getElementById("date").textContent = `${data.date} (${data.timezone})`;
   document.getElementById("github").textContent = data.github_commits;
@@ -102,6 +163,13 @@ function fillStatus(data) {
     state.avatar = data.avatar;
   }
   renderAvatarBadge();
+
+  const githubRing = document.querySelector("[data-ring='github']");
+  const leetcodeRing = document.querySelector("[data-ring='leetcode']");
+  setRing(githubRing, data.github_commits, data.goals.github_commits);
+  setRing(leetcodeRing, data.leetcode_solved, data.goals.leetcode_solved);
+  maybeCelebrate("github_commits", data.github_commits, data.goals.github_commits, githubRing);
+  maybeCelebrate("leetcode_solved", data.leetcode_solved, data.goals.leetcode_solved, leetcodeRing);
 }
 
 function setSegmentDefaults() {

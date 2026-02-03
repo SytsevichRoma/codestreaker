@@ -56,14 +56,36 @@
         </div>
         <div class="metrics">
           <div class="metric">
-            <div class="metric-title">GitHub commits</div>
-            <div class="metric-value" id="github">0</div>
-            <div class="metric-goal" id="github-goal">/0</div>
+            <div class="metric-top">
+              <div class="metric-ring ring-github" data-ring="github">
+                <svg class="ring-svg" viewBox="0 0 52 52" aria-hidden="true">
+                  <circle class="ring-track" cx="26" cy="26" r="22"></circle>
+                  <circle class="ring-progress" cx="26" cy="26" r="22"></circle>
+                </svg>
+                <div class="ring-label" id="github-ring-label">0/0</div>
+              </div>
+              <div class="metric-main">
+                <div class="metric-title">GitHub commits</div>
+                <div class="metric-value" id="github">0</div>
+                <div class="metric-goal" id="github-goal">/0</div>
+              </div>
+            </div>
           </div>
           <div class="metric">
-            <div class="metric-title">LeetCode solved</div>
-            <div class="metric-value" id="leetcode">0</div>
-            <div class="metric-goal" id="leetcode-goal">/0</div>
+            <div class="metric-top">
+              <div class="metric-ring ring-leetcode" data-ring="leetcode">
+                <svg class="ring-svg" viewBox="0 0 52 52" aria-hidden="true">
+                  <circle class="ring-track" cx="26" cy="26" r="22"></circle>
+                  <circle class="ring-progress" cx="26" cy="26" r="22"></circle>
+                </svg>
+                <div class="ring-label" id="leetcode-ring-label">0/0</div>
+              </div>
+              <div class="metric-main">
+                <div class="metric-title">LeetCode solved</div>
+                <div class="metric-value" id="leetcode">0</div>
+                <div class="metric-goal" id="leetcode-goal">/0</div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="streaks">

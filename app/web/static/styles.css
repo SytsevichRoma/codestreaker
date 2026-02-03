@@ -218,6 +218,17 @@ body.is-loading .container {
   padding: 12px;
 }
 
+.metric-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.metric-main {
+  display: flex;
+  flex-direction: column;
+}
+
 .metric-title {
   font-size: 12px;
   color: var(--muted);
@@ -231,6 +242,82 @@ body.is-loading .container {
 
 .metric-goal {
   color: var(--muted);
+}
+
+.metric-ring {
+  width: 54px;
+  height: 54px;
+  flex-shrink: 0;
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.ring-svg {
+  width: 54px;
+  height: 54px;
+  transform: rotate(-90deg);
+}
+
+.ring-track,
+.ring-progress {
+  fill: none;
+  stroke-width: 5.5;
+  stroke-linecap: round;
+}
+
+.ring-track {
+  stroke: rgba(122, 132, 153, 0.2);
+}
+
+.ring-progress {
+  stroke: var(--accent);
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ring-leetcode .ring-progress {
+  stroke: var(--accent-2);
+}
+
+.ring-label {
+  position: absolute;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.confetti-burst {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.confetti-piece {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 4px;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  animation: confetti-pop 900ms ease-out forwards;
+}
+
+@keyframes confetti-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translate(0, 0) rotate(0deg);
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translate(var(--x), var(--y)) rotate(var(--r));
+  }
 }
 
 .streaks {
