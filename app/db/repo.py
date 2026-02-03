@@ -120,6 +120,18 @@ async def get_daily_stats(telegram_id: int, date: str) -> dict[str, Any] | None:
     return dict(row) if row else None
 
 
+async def get_daily_stats_range(
+    telegram_id: int,
+    start_date: str,
+    end_date: str,
+) -> list[dict[str, Any]]:
+    rows = await fetchall(
+        "SELECT * FROM daily_stats WHERE telegram_id = ? AND date BETWEEN ? AND ? ORDER BY date ASC",
+        (telegram_id, start_date, end_date),
+    )
+    return [dict(row) for row in rows]
+
+
 async def upsert_daily_stats(
     telegram_id: int,
     date: str,

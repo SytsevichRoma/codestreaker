@@ -1,7 +1,7 @@
 import json
 import logging
 import urllib.parse
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -130,6 +130,40 @@ async def api_status(request: Request):
             "avatar": db_user.get("avatar"),
         }
     )
+
+
+@app.get("/api/history")
+async def api_history(request: Request, days: int = 7):
+    user = await _get_user_from_init(request)
+    telegram_id = int(user["id"])
+    db_user = await repo.get_user(telegram_id)
+    if not db_user:
+        db_user = await repo.create_user(telegram_id, settings.timezone_default)
+
+    tz_name = db_user["tz"]
+    safe_days = max(1, min(int(days or 7), 31))
+    today = now_in_tz(tz_name).date()
+    start_date = today - timedelta(days=safe_days - 1)
+
+    rows = await repo.get_daily_stats_range(
+        telegram_id,
+        start_date.isoformat(),
+        today.isoformat(),
+    )
+    row_map = {row["date"]: row for row in rows}
+    days_out = []
+    for i in range(safe_days):
+        date = (start_date + timedelta(days=i)).isoformat()
+        row = row_map.get(date)
+        days_out.append(
+            {
+                "date": date,
+                "github": int(row["github_commits"]) if row else 0,
+                "leetcode": int(row["leetcode_solved"]) if row else 0,
+            }
+        )
+
+    return JSONResponse({"tz": tz_name, "days": days_out})
 
 
 @app.get("/healthz")

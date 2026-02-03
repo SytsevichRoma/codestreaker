@@ -84,6 +84,18 @@ function clearError() {
   banner.style.display = "none";
 }
 
+function setHeatmapMessage(message) {
+  const el = document.getElementById("heatmap-message");
+  if (!el) return;
+  if (!message) {
+    el.style.display = "none";
+    el.textContent = "";
+    return;
+  }
+  el.textContent = message;
+  el.style.display = "block";
+}
+
 function setRing(el, current, goal) {
   if (!el) return;
   const circle = el.querySelector(".ring-progress");
@@ -172,6 +184,94 @@ function fillStatus(data) {
   maybeCelebrate("leetcode_solved", data.leetcode_solved, data.goals.leetcode_solved, leetcodeRing);
 }
 
+function hexToRgb(hex) {
+  const value = hex.replace("#", "");
+  if (value.length !== 6) return null;
+  const r = parseInt(value.slice(0, 2), 16);
+  const g = parseInt(value.slice(2, 4), 16);
+  const b = parseInt(value.slice(4, 6), 16);
+  return { r, g, b };
+}
+
+function heatColor(hex, value, goal) {
+  if (!value || value <= 0) {
+    return "rgba(122, 132, 153, 0.12)";
+  }
+  const rgb = hexToRgb(hex);
+  if (!rgb) return hex;
+  const ratio = goal > 0 ? Math.min(value / goal, 1) : 1;
+  const alpha = 0.25 + ratio * 0.6;
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha.toFixed(2)})`;
+}
+
+function weekdayShort(dateStr, tz) {
+  const date = new Date(`${dateStr}T12:00:00Z`);
+  return new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: tz }).format(date);
+}
+
+function buildTooltip(dayLabel, value, singular, plural) {
+  const count = Number(value) || 0;
+  const unit = count === 1 ? singular : plural;
+  return `${dayLabel}: ${count} ${unit}`;
+}
+
+function renderHeatmap(data) {
+  const githubGrid = document.querySelector("[data-heatmap='github']");
+  const leetcodeGrid = document.querySelector("[data-heatmap='leetcode']");
+  if (!githubGrid || !leetcodeGrid) return;
+  const tzLabel = document.getElementById("weekly-tz");
+  if (tzLabel) tzLabel.textContent = data.tz || "Europe/Kyiv";
+  setHeatmapMessage("");
+
+  const order = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const map = new Map();
+  data.days.forEach((day) => {
+    const label = weekdayShort(day.date, data.tz);
+    map.set(label, day);
+  });
+
+  const renderRow = (grid, metricKey, baseHex, unitLabel) => {
+    grid.innerHTML = "";
+    order.forEach((label) => {
+      const entry = map.get(label);
+      const value = entry ? entry[metricKey] : 0;
+      const goal = state.goals[metricKey] || 0;
+      const cell = document.createElement("button");
+      cell.type = "button";
+      cell.className = "heatmap-cell ios-tap";
+      cell.style.background = heatColor(baseHex, value, goal);
+      cell.setAttribute("aria-label", buildTooltip(label, value, unitLabel.singular, unitLabel.plural));
+      const tooltip = document.createElement("span");
+      tooltip.className = "heatmap-tooltip";
+      tooltip.textContent = buildTooltip(label, value, unitLabel.singular, unitLabel.plural);
+      cell.appendChild(tooltip);
+      cell.addEventListener("click", () => {
+        cell.classList.add("show-tooltip");
+        window.setTimeout(() => cell.classList.remove("show-tooltip"), 1400);
+      });
+      grid.appendChild(cell);
+    });
+  };
+
+  renderRow(githubGrid, "github", "#3b82f6", { singular: "commit", plural: "commits" });
+  renderRow(leetcodeGrid, "leetcode", "#5ad0a0", { singular: "solved", plural: "solved" });
+  initIosTap();
+}
+
+async function loadHistory() {
+  if (!state.initData) {
+    setHeatmapMessage("Open inside Telegram to see this week.");
+    return;
+  }
+  try {
+    const data = await apiGet("/api/history?days=7");
+    renderHeatmap(data);
+  } catch (err) {
+    console.error("Failed to load history:", err);
+    setHeatmapMessage("History unavailable right now.");
+  }
+}
+
 function setSegmentDefaults() {
   document.querySelectorAll(".seg-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
@@ -193,12 +293,14 @@ async function loadStatus() {
     console.warn("Missing Telegram initData; open inside Telegram.");
     showError("WebApp init data missing. Open this dashboard from Telegram.");
     document.getElementById("date").textContent = "Open inside Telegram";
+    setHeatmapMessage("Open inside Telegram to see this week.");
     return;
   }
   clearError();
   try {
     const data = await apiGet("/api/status");
     fillStatus(data);
+    await loadHistory();
   } catch (err) {
     console.error("Failed to load status:", err);
     showError("Failed to load status. Please try again.");
