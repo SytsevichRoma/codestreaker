@@ -351,6 +351,28 @@ body.is-loading .container {
   color: var(--muted);
 }
 
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 8px;
+  justify-content: flex-end;
+}
+
+.legend-squares {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.legend-square {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgba(27, 31, 36, 0.08);
+}
+
 .heatmap {
   display: grid;
   gap: 10px;
@@ -358,8 +380,8 @@ body.is-loading .container {
 
 .heatmap-days {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
+  grid-template-columns: repeat(7, 14px);
+  gap: 4px;
   font-size: 10px;
   color: var(--muted);
   text-align: center;
@@ -392,7 +414,7 @@ body.is-loading .container {
   padding: 0;
   background: #ebedf0;
   box-shadow: inset 0 0 0 1px rgba(27, 31, 36, 0.06);
-  transition: transform 160ms ease, background 200ms ease, box-shadow 200ms ease;
+  transition: transform 160ms ease, background 220ms ease, box-shadow 200ms ease;
   cursor: pointer;
 }
 
@@ -401,19 +423,71 @@ body.is-loading .container {
 }
 
 .hm-cell.hm-1 {
-  background: #9be9a8;
+  background: linear-gradient(140deg, #b9f3c5, #7be7a0);
+  background-size: 160% 160%;
+  animation: hm-flow 6s ease infinite;
 }
 
 .hm-cell.hm-2 {
-  background: #40c463;
+  background: linear-gradient(140deg, #6fe28d, #34c469);
+  background-size: 160% 160%;
+  animation: hm-flow 6s ease infinite;
 }
 
 .hm-cell.hm-3 {
-  background: #30a14e;
+  background: linear-gradient(140deg, #2fc86a, #249d4f);
+  background-size: 160% 160%;
+  animation: hm-flow 6s ease infinite;
 }
 
 .hm-cell.hm-4 {
-  background: #216e39;
+  background: linear-gradient(140deg, #2aa05c, #1f6a3a);
+  background-size: 160% 160%;
+  animation: hm-flow 6s ease infinite;
+}
+
+.hm-row-leetcode.hm-1 {
+  background: linear-gradient(140deg, #c6c9ff, #8fa7ff);
+  background-size: 160% 160%;
+  animation: hm-flow 6s ease infinite;
+}
+
+.hm-row-leetcode.hm-2 {
+  background: linear-gradient(140deg, #7f8dff, #5b7dff);
+  background-size: 160% 160%;
+  animation: hm-flow 6s ease infinite;
+}
+
+.hm-row-leetcode.hm-3 {
+  background: linear-gradient(140deg, #5a6cff, #3f57f2);
+  background-size: 160% 160%;
+  animation: hm-flow 6s ease infinite;
+}
+
+.hm-row-leetcode.hm-4 {
+  background: linear-gradient(140deg, #4a5be8, #2f3fbf);
+  background-size: 160% 160%;
+  animation: hm-flow 6s ease infinite;
+}
+
+.legend-square.hm-0 {
+  background: #ebedf0;
+}
+
+.legend-square.hm-1 {
+  background: #b9f3c5;
+}
+
+.legend-square.hm-2 {
+  background: #6fe28d;
+}
+
+.legend-square.hm-3 {
+  background: #2fc86a;
+}
+
+.legend-square.hm-4 {
+  background: #1f6a3a;
 }
 
 .heatmap-cell:hover,
@@ -449,6 +523,136 @@ body.is-loading .container {
 .heatmap-message {
   font-size: 12px;
   color: var(--muted);
+}
+
+.streak-rail {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.streak-rail-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.streak-rail-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(122, 132, 153, 0.16);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(27, 31, 36, 0.06);
+}
+
+.streak-rail-fill {
+  height: 100%;
+  border-radius: 999px;
+  width: 0%;
+  background: linear-gradient(90deg, rgba(90, 208, 160, 0.9), rgba(59, 130, 246, 0.9));
+  transition: width 220ms ease;
+}
+
+.insight-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.28);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+  z-index: 21;
+}
+
+.insight-backdrop.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.insight-card {
+  position: fixed;
+  inset: auto 16px 20px 16px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.22);
+  transform: translateY(120%);
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 22;
+  padding: 14px 16px 18px;
+}
+
+.insight-card.is-visible {
+  transform: translateY(0);
+}
+
+.insight-handle {
+  width: 40px;
+  height: 5px;
+  border-radius: 999px;
+  background: #e4e8f6;
+  margin: 0 auto 12px;
+}
+
+.insight-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.insight-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid rgba(219, 226, 242, 0.9);
+  background: #fff;
+  font-size: 14px;
+  display: grid;
+  place-items: center;
+}
+
+.insight-body {
+  display: grid;
+  gap: 10px;
+}
+
+.insight-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  font-size: 13px;
+  align-items: center;
+}
+
+.insight-remaining {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.insight-suggestion {
+  font-size: 12px;
+  color: var(--muted);
+  background: #f7f9ff;
+  border-radius: 12px;
+  padding: 8px 10px;
+}
+
+@keyframes hm-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 .streak-card {
@@ -694,5 +898,9 @@ button:disabled {
   .reminders,
   .quick-actions {
     grid-template-columns: 1fr;
+  }
+
+  .insight-card {
+    inset: auto 12px 16px 12px;
   }
 }

@@ -10,6 +10,8 @@ const state = {
   goals: { github_commits: 2, leetcode_solved: 2 },
   avatar: "🐶",
   celebrated: { github_commits: false, leetcode_solved: false },
+  historyByDate: {},
+  historyTz: "Europe/Kyiv",
 };
 
 const botUsername = window.__BOT_USERNAME__ || "";
@@ -248,13 +250,19 @@ function renderHeatmap(data) {
   if (tzLabel) tzLabel.textContent = data.tz || "Europe/Kyiv";
   setHeatmapMessage("");
 
+  state.historyByDate = {};
+  state.historyTz = data.tz || "Europe/Kyiv";
+  data.days.forEach((day) => {
+    state.historyByDate[day.date] = day;
+  });
+
   const slots = new Array(7).fill(null);
   data.days.forEach((day) => {
     const index = weekdayIndex(day.date, data.tz);
     slots[index] = day;
   });
 
-  const renderRow = (grid, metricKey, unitLabel) => {
+  const renderRow = (grid, metricKey, unitLabel, rowClass) => {
     grid.innerHTML = "";
     slots.forEach((entry) => {
       const value = entry ? entry[metricKey] : 0;
@@ -262,13 +270,17 @@ function renderHeatmap(data) {
       const level = heatLevel(value);
       const cell = document.createElement("button");
       cell.type = "button";
-      cell.className = `heatmap-cell hm-cell hm-${level} ios-tap`;
+      cell.className = `heatmap-cell hm-cell hm-${level} ${rowClass} ios-tap`;
+      if (entry) {
+        cell.dataset.date = entry.date;
+      }
       cell.setAttribute("aria-label", buildTooltip(dateLabel, value, unitLabel.singular, unitLabel.plural));
       const tooltip = document.createElement("span");
       tooltip.className = "heatmap-tooltip";
       tooltip.textContent = buildTooltip(dateLabel, value, unitLabel.singular, unitLabel.plural);
       cell.appendChild(tooltip);
       cell.addEventListener("click", () => {
+        if (entry) openInsight(entry.date);
         cell.classList.add("show-tooltip");
         window.setTimeout(() => cell.classList.remove("show-tooltip"), 1400);
       });
@@ -276,9 +288,70 @@ function renderHeatmap(data) {
     });
   };
 
-  renderRow(githubGrid, "github", { singular: "commit", plural: "commits" });
-  renderRow(leetcodeGrid, "leetcode", { singular: "solved", plural: "solved" });
+  renderRow(githubGrid, "github", { singular: "commit", plural: "commits" }, "hm-row-github");
+  renderRow(leetcodeGrid, "leetcode", { singular: "solved", plural: "solved" }, "hm-row-leetcode");
   initIosTap();
+  updateWeekScore(data.days);
+}
+
+function updateWeekScore(days) {
+  const weekScore = document.getElementById("week-score");
+  const weekFill = document.getElementById("week-score-fill");
+  if (!weekScore || !weekFill) return;
+  const total = Array.isArray(days) ? days.length : 0;
+  const completed = Array.isArray(days)
+    ? days.filter((day) => day.github >= state.goals.github_commits && day.leetcode >= state.goals.leetcode_solved).length
+    : 0;
+  const ratio = total > 0 ? completed / total : 0;
+  weekScore.textContent = `${completed}/${total || 7} days completed`;
+  weekFill.style.width = `${Math.round(ratio * 100)}%`;
+}
+
+function formatInsightTitle(dateStr) {
+  if (!dateStr) return "Day";
+  const date = new Date(`${dateStr}T12:00:00Z`);
+  const weekday = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: state.historyTz }).format(date);
+  return `${weekday}, ${dateStr}`;
+}
+
+function openInsight(dateStr) {
+  const entry = state.historyByDate[dateStr] || { github: 0, leetcode: 0 };
+  const title = document.getElementById("insight-title");
+  const gh = document.getElementById("insight-github");
+  const lc = document.getElementById("insight-leetcode");
+  const ghRemain = document.getElementById("insight-github-remaining");
+  const lcRemain = document.getElementById("insight-leetcode-remaining");
+  const suggestion = document.getElementById("insight-suggestion");
+  const card = document.getElementById("insight-card");
+  const backdrop = document.getElementById("insight-backdrop");
+  if (!card || !backdrop || !title || !gh || !lc || !ghRemain || !lcRemain || !suggestion) return;
+
+  const ghGoal = state.goals.github_commits || 0;
+  const lcGoal = state.goals.leetcode_solved || 0;
+  const ghLeft = Math.max(ghGoal - entry.github, 0);
+  const lcLeft = Math.max(lcGoal - entry.leetcode, 0);
+  const completed = entry.github >= ghGoal && entry.leetcode >= lcGoal;
+
+  title.textContent = formatInsightTitle(dateStr);
+  gh.textContent = `${entry.github} / ${ghGoal}`;
+  lc.textContent = `${entry.leetcode} / ${lcGoal}`;
+  ghRemain.textContent = ghLeft > 0 ? `${ghLeft} left` : "goal met";
+  lcRemain.textContent = lcLeft > 0 ? `${lcLeft} left` : "goal met";
+  suggestion.textContent = completed
+    ? "Nice — goals completed ✅"
+    : "Quick win: do 1 easy LC + small commit";
+
+  triggerHapticLight();
+  card.classList.add("is-visible");
+  backdrop.classList.add("is-visible");
+}
+
+function closeInsight() {
+  const card = document.getElementById("insight-card");
+  const backdrop = document.getElementById("insight-backdrop");
+  if (!card || !backdrop) return;
+  card.classList.remove("is-visible");
+  backdrop.classList.remove("is-visible");
 }
 
 async function loadHistory() {
@@ -462,8 +535,13 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("open-status").addEventListener("click", () => openBotLink("status"));
   document.getElementById("btnAvatar").addEventListener("click", openAvatarSheet);
   document.getElementById("avatar-backdrop").addEventListener("click", closeAvatarSheet);
+  document.getElementById("insight-backdrop").addEventListener("click", closeInsight);
+  document.getElementById("insight-close").addEventListener("click", closeInsight);
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") closeAvatarSheet();
+    if (event.key === "Escape") {
+      closeAvatarSheet();
+      closeInsight();
+    }
   });
 
   initIosTap();

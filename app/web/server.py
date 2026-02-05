@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -104,6 +104,11 @@ async def index(request: Request):
             "bot_username": settings.bot_username,
         },
     )
+
+
+@app.get("/favicon.ico")
+async def favicon():
+    return FileResponse(base_dir / "static" / "favicon.ico", media_type="image/x-icon")
 
 
 @app.get("/api/status")
