@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CodeStreaker</title>
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <link rel="apple-touch-icon" href="/static/favicon.png">
+
     <link rel="stylesheet" href="/static/styles.css" />
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
   </head>
@@ -104,6 +107,17 @@
             <h3>This week</h3>
             <span class="weekly-tz" id="weekly-tz">Europe/Kyiv</span>
           </div>
+          <div class="heatmap-legend">
+            <span>Less</span>
+            <div class="legend-squares">
+              <span class="legend-square hm-0"></span>
+              <span class="legend-square hm-1"></span>
+              <span class="legend-square hm-2"></span>
+              <span class="legend-square hm-3"></span>
+              <span class="legend-square hm-4"></span>
+            </div>
+            <span>More</span>
+          </div>
           <div class="heatmap">
             <div class="heatmap-days">
               <span>Mon</span>
@@ -121,6 +135,15 @@
             <div class="heatmap-row">
               <div class="heatmap-label">LeetCode</div>
               <div class="heatmap-grid" data-heatmap="leetcode"></div>
+            </div>
+            <div class="streak-rail">
+              <div class="streak-rail-header">
+                <span>Week score</span>
+                <span id="week-score">0/7 days completed</span>
+              </div>
+              <div class="streak-rail-track">
+                <div class="streak-rail-fill" id="week-score-fill"></div>
+              </div>
             </div>
             <div class="heatmap-message" id="heatmap-message" style="display: none;"></div>
           </div>
@@ -178,6 +201,30 @@
       <div class="sheet-handle"></div>
       <h3>Choose avatar</h3>
       <div class="avatar-grid" id="avatar-grid"></div>
+    </div>
+
+    <div class="insight-backdrop" id="insight-backdrop" aria-hidden="true"></div>
+    <div class="insight-card" id="insight-card" role="dialog" aria-modal="true" aria-label="Daily insight">
+      <div class="insight-handle"></div>
+      <div class="insight-header">
+        <h3 id="insight-title">Day</h3>
+        <button class="icon-btn ios-tap ios-button" id="insight-close" type="button" aria-label="Close">
+          ✕
+        </button>
+      </div>
+      <div class="insight-body">
+        <div class="insight-row">
+          <span>GitHub</span>
+          <span id="insight-github">0 / 0</span>
+          <span id="insight-github-remaining" class="insight-remaining">0 left</span>
+        </div>
+        <div class="insight-row">
+          <span>LeetCode</span>
+          <span id="insight-leetcode">0 / 0</span>
+          <span id="insight-leetcode-remaining" class="insight-remaining">0 left</span>
+        </div>
+        <div class="insight-suggestion" id="insight-suggestion">—</div>
+      </div>
     </div>
 
     <script>
