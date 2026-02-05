@@ -1,6 +1,8 @@
 import json
 import logging
 import urllib.parse
+import asyncio
+import time
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
@@ -23,6 +25,28 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory=str(base_dir / "static")), name="static")
 
 templates = Jinja2Templates(directory=str(base_dir / "templates"))
+
+_STATUS_TTL_SECONDS = 45
+_STATUS_CACHE: dict[tuple[int, str, str], tuple[int, float]] = {}
+
+
+def _cache_get(key: tuple[int, str, str]) -> int | None:
+    entry = _STATUS_CACHE.get(key)
+    if not entry:
+        return None
+    value, ts = entry
+    if time.time() - ts > _STATUS_TTL_SECONDS:
+        _STATUS_CACHE.pop(key, None)
+        return None
+    return value
+
+
+def _cache_set(key: tuple[int, str, str], value: int) -> None:
+    _STATUS_CACHE[key] = (int(value), time.time())
+
+
+def _is_truthy(value: str | None) -> bool:
+    return (value or "").strip().lower() in {"1", "true", "yes"}
 
 
 async def _get_init_data(request: Request) -> str:
@@ -90,23 +114,49 @@ async def api_status(request: Request):
     if not db_user:
         db_user = await repo.create_user(telegram_id, settings.timezone_default)
 
+    force = _is_truthy(request.query_params.get("force"))
     tz_name = db_user["tz"]
     goals = json.loads(db_user["goals_json"])
     repos = json.loads(db_user["repos_json"])
     gh_user = db_user.get("github_username")
     lc_user = db_user.get("leetcode_username")
 
-    github_commits = 0
-    leetcode_solved = 0
-    if gh_user:
-        github_commits = await github.count_commits_today(gh_user, tz_name, repos)
-    if lc_user:
-        leetcode_solved = await leetcode.count_accepted_today(lc_user, tz_name)
-
     today = now_in_tz(tz_name).date()
+    today_str = today.isoformat()
+    gh_key = (telegram_id, today_str, "github_commits")
+    lc_key = (telegram_id, today_str, "leetcode_solved")
+
+    github_commits = None
+    leetcode_solved = None
+    if not force:
+        if gh_user:
+            github_commits = _cache_get(gh_key)
+        if lc_user:
+            leetcode_solved = _cache_get(lc_key)
+
+    tasks: list[tuple[str, Any]] = []
+    if gh_user and github_commits is None:
+        tasks.append(("github", github.count_commits_today(gh_user, tz_name, repos)))
+    if lc_user and leetcode_solved is None:
+        tasks.append(("leetcode", leetcode.count_accepted_today(lc_user, tz_name)))
+
+    if tasks:
+        results = await asyncio.gather(*(task for _, task in tasks))
+        for (key, _), value in zip(tasks, results):
+            if key == "github":
+                github_commits = int(value)
+                _cache_set(gh_key, github_commits)
+            elif key == "leetcode":
+                leetcode_solved = int(value)
+                _cache_set(lc_key, leetcode_solved)
+
+    if github_commits is None:
+        github_commits = 0
+    if leetcode_solved is None:
+        leetcode_solved = 0
     await repo.upsert_daily_stats(
         telegram_id,
-        today.isoformat(),
+        today_str,
         github_commits,
         leetcode_solved,
     )

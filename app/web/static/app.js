@@ -42,10 +42,10 @@ function hideLoading() {
   }
 }
 
-async function apiGet(url) {
+async function apiGet(path, params = {}) {
   showLoading();
   try {
-    const res = await fetch(`${url}?initData=${encodeURIComponent(state.initData)}`);
+    const res = await fetch(buildUrl(path, { ...params, initData: state.initData }));
     if (!res.ok) throw new Error("Request failed");
     return res.json();
   } finally {
@@ -53,10 +53,10 @@ async function apiGet(url) {
   }
 }
 
-async function apiPost(url, body) {
+async function apiPost(path, body, params = {}) {
   showLoading();
   try {
-    const res = await fetch(url, {
+    const res = await fetch(buildUrl(path, { ...params, initData: state.initData }), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -69,6 +69,15 @@ async function apiPost(url, body) {
   } finally {
     hideLoading();
   }
+}
+
+function buildUrl(path, params = {}) {
+  const url = new URL(path, window.location.origin);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === "") return;
+    url.searchParams.set(key, String(value));
+  });
+  return url.toString();
 }
 
 function showError(message) {
@@ -215,6 +224,22 @@ function buildTooltip(dayLabel, value, singular, plural) {
   return `${dayLabel}: ${count} ${unit}`;
 }
 
+function weekdayIndex(dateStr, tz) {
+  const date = new Date(`${dateStr}T12:00:00Z`);
+  const label = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: tz }).format(date);
+  const map = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+  return map[label] ?? 0;
+}
+
+function heatLevel(value) {
+  const count = Number(value) || 0;
+  if (count <= 0) return 0;
+  if (count === 1) return 1;
+  if (count === 2) return 2;
+  if (count === 3) return 3;
+  return 4;
+}
+
 function renderHeatmap(data) {
   const githubGrid = document.querySelector("[data-heatmap='github']");
   const leetcodeGrid = document.querySelector("[data-heatmap='leetcode']");
@@ -223,27 +248,25 @@ function renderHeatmap(data) {
   if (tzLabel) tzLabel.textContent = data.tz || "Europe/Kyiv";
   setHeatmapMessage("");
 
-  const order = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  const map = new Map();
+  const slots = new Array(7).fill(null);
   data.days.forEach((day) => {
-    const label = weekdayShort(day.date, data.tz);
-    map.set(label, day);
+    const index = weekdayIndex(day.date, data.tz);
+    slots[index] = day;
   });
 
-  const renderRow = (grid, metricKey, baseHex, unitLabel) => {
+  const renderRow = (grid, metricKey, unitLabel) => {
     grid.innerHTML = "";
-    order.forEach((label) => {
-      const entry = map.get(label);
+    slots.forEach((entry) => {
       const value = entry ? entry[metricKey] : 0;
-      const goal = state.goals[metricKey] || 0;
+      const dateLabel = entry ? entry.date : "—";
+      const level = heatLevel(value);
       const cell = document.createElement("button");
       cell.type = "button";
-      cell.className = "heatmap-cell ios-tap";
-      cell.style.background = heatColor(baseHex, value, goal);
-      cell.setAttribute("aria-label", buildTooltip(label, value, unitLabel.singular, unitLabel.plural));
+      cell.className = `heatmap-cell hm-cell hm-${level} ios-tap`;
+      cell.setAttribute("aria-label", buildTooltip(dateLabel, value, unitLabel.singular, unitLabel.plural));
       const tooltip = document.createElement("span");
       tooltip.className = "heatmap-tooltip";
-      tooltip.textContent = buildTooltip(label, value, unitLabel.singular, unitLabel.plural);
+      tooltip.textContent = buildTooltip(dateLabel, value, unitLabel.singular, unitLabel.plural);
       cell.appendChild(tooltip);
       cell.addEventListener("click", () => {
         cell.classList.add("show-tooltip");
@@ -253,8 +276,8 @@ function renderHeatmap(data) {
     });
   };
 
-  renderRow(githubGrid, "github", "#3b82f6", { singular: "commit", plural: "commits" });
-  renderRow(leetcodeGrid, "leetcode", "#5ad0a0", { singular: "solved", plural: "solved" });
+  renderRow(githubGrid, "github", { singular: "commit", plural: "commits" });
+  renderRow(leetcodeGrid, "leetcode", { singular: "solved", plural: "solved" });
   initIosTap();
 }
 
@@ -264,7 +287,7 @@ async function loadHistory() {
     return;
   }
   try {
-    const data = await apiGet("/api/history?days=7");
+    const data = await apiGet("/api/history", { days: 7 });
     renderHeatmap(data);
   } catch (err) {
     console.error("Failed to load history:", err);
@@ -287,7 +310,7 @@ function setSegmentDefaults() {
   });
 }
 
-async function loadStatus() {
+async function loadStatus(force = false) {
   state.initData = tg ? tg.initData || "" : "";
   if (!state.initData) {
     console.warn("Missing Telegram initData; open inside Telegram.");
@@ -298,7 +321,7 @@ async function loadStatus() {
   }
   clearError();
   try {
-    const data = await apiGet("/api/status");
+    const data = await apiGet("/api/status", { force: force ? 1 : undefined });
     fillStatus(data);
     await loadHistory();
   } catch (err) {
@@ -431,7 +454,7 @@ function initIosTap() {
 
 document.addEventListener("DOMContentLoaded", () => {
   renderAvatarBadge();
-  document.getElementById("btnRefresh").addEventListener("click", loadStatus);
+  document.getElementById("btnRefresh").addEventListener("click", () => loadStatus(true));
   document.getElementById("save-goals").addEventListener("click", saveGoals);
   document.getElementById("save-reminders").addEventListener("click", saveReminders);
   document.getElementById("save-repos").addEventListener("click", saveRepos);
