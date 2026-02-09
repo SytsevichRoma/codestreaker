@@ -30,6 +30,11 @@ _STATUS_TTL_SECONDS = 45
 _STATUS_CACHE: dict[tuple[int, str, str], tuple[int, float]] = {}
 
 
+@app.on_event("startup")
+async def startup() -> None:
+    await repo.init_db()
+
+
 def _cache_get(key: tuple[int, str, str]) -> int | None:
     entry = _STATUS_CACHE.get(key)
     if not entry:
