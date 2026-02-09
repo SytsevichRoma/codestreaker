@@ -35,6 +35,25 @@ python -m app.main
 
 Web server runs on `http://0.0.0.0:8000`.
 
+## Deploy on Render (Docker)
+1. Create a new **Web Service**
+2. Runtime: **Docker**
+3. No Build/Start commands needed (Docker `CMD` runs the server)
+
+Set env vars:
+- `BOT_TOKEN`
+- `SECRET_KEY`
+- `GITHUB_TOKEN`
+- `GITHUB_USERNAME`
+- `LEETCODE_USERNAME`
+- `BOT_USERNAME`
+- `BASE_URL`
+- `TZ`
+- `REMINDERS`
+- `GOALS`
+
+Telegram requires HTTPS, so `BASE_URL` should be your Render URL.
+
 ## Bot Commands
 - `/start` - create user + show menu
 - `/connect_github` - set GitHub username
