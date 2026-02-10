@@ -54,6 +54,11 @@ def _is_truthy(value: str | None) -> bool:
     return (value or "").strip().lower() in {"1", "true", "yes"}
 
 
+def _normalize_handle(value: str | None) -> str | None:
+    cleaned = (value or "").strip()
+    return cleaned or None
+
+
 async def _get_init_data(request: Request) -> str:
     init_data = request.query_params.get("initData")
     if init_data:
@@ -111,6 +116,30 @@ async def index(request: Request):
     )
 
 
+@app.get("/settings", response_class=HTMLResponse)
+async def settings_page(request: Request):
+    return templates.TemplateResponse(
+        "settings.html",
+        {
+            "request": request,
+            "base_url": settings.base_url,
+            "bot_username": settings.bot_username,
+        },
+    )
+
+
+@app.get("/status", response_class=HTMLResponse)
+async def status_page(request: Request):
+    return templates.TemplateResponse(
+        "status.html",
+        {
+            "request": request,
+            "base_url": settings.base_url,
+            "bot_username": settings.bot_username,
+        },
+    )
+
+
 @app.get("/favicon.ico")
 async def favicon():
     return FileResponse(base_dir / "static" / "favicon.ico", media_type="image/x-icon")
@@ -122,14 +151,31 @@ async def api_status(request: Request):
     telegram_id = int(user["id"])
     db_user = await repo.get_user(telegram_id)
     if not db_user:
-        db_user = await repo.create_user(telegram_id, settings.timezone_default)
+        db_user = await repo.create_user_if_missing(
+            telegram_id,
+            settings.timezone_default,
+            user.get("username"),
+            user.get("first_name"),
+            user.get("last_name"),
+        )
 
     force = _is_truthy(request.query_params.get("force"))
     tz_name = db_user["tz"]
     goals = json.loads(db_user["goals_json"])
     repos = json.loads(db_user["repos_json"])
-    gh_user = db_user.get("github_username")
-    lc_user = db_user.get("leetcode_username")
+    gh_user = _normalize_handle(db_user.get("github_username"))
+    lc_user = _normalize_handle(db_user.get("leetcode_username"))
+
+    if not gh_user or not lc_user:
+        return JSONResponse(
+            {
+                "needs_setup": True,
+                "github_username": gh_user,
+                "leetcode_username": lc_user,
+                "timezone": tz_name,
+                "avatar": db_user.get("avatar"),
+            }
+        )
 
     today = now_in_tz(tz_name).date()
     today_str = today.isoformat()
@@ -179,6 +225,7 @@ async def api_status(request: Request):
 
     return JSONResponse(
         {
+            "needs_setup": False,
             "date": today.isoformat(),
             "timezone": tz_name,
             "github_commits": github_commits,
@@ -188,6 +235,8 @@ async def api_status(request: Request):
             "repos": repos,
             "streak": streak_info,
             "avatar": db_user.get("avatar"),
+            "github_username": gh_user,
+            "leetcode_username": lc_user,
         }
     )
 
@@ -198,7 +247,13 @@ async def api_history(request: Request, days: int = 7):
     telegram_id = int(user["id"])
     db_user = await repo.get_user(telegram_id)
     if not db_user:
-        db_user = await repo.create_user(telegram_id, settings.timezone_default)
+        db_user = await repo.create_user_if_missing(
+            telegram_id,
+            settings.timezone_default,
+            user.get("username"),
+            user.get("first_name"),
+            user.get("last_name"),
+        )
 
     tz_name = db_user["tz"]
     safe_days = max(1, min(int(days or 7), 31))
@@ -247,6 +302,15 @@ async def api_settings(request: Request):
     user = await _get_user_from_init(request)
     telegram_id = int(user["id"])
     payload = await request.json()
+    db_user = await repo.get_user(telegram_id)
+    if not db_user:
+        await repo.create_user_if_missing(
+            telegram_id,
+            settings.timezone_default,
+            user.get("username"),
+            user.get("first_name"),
+            user.get("last_name"),
+        )
 
     updates: dict[str, Any] = {}
     reminders_changed = False
@@ -266,9 +330,9 @@ async def api_settings(request: Request):
         repos = [r.strip() for r in payload["repos"] if r.strip()]
         updates["repos_json"] = json.dumps(repos)
     if "github_username" in payload:
-        updates["github_username"] = payload["github_username"]
+        updates["github_username"] = _normalize_handle(payload.get("github_username"))
     if "leetcode_username" in payload:
-        updates["leetcode_username"] = payload["leetcode_username"]
+        updates["leetcode_username"] = _normalize_handle(payload.get("leetcode_username"))
     if "avatar" in payload:
         updates["avatar"] = payload["avatar"]
 

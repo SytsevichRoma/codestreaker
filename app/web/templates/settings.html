@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CodeStreaker · Settings</title>
+    <link rel="icon" href="/static/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" href="/static/favicon.png" />
+    <link rel="apple-touch-icon" href="/static/favicon.png" />
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  </head>
+  <body data-page="settings">
+    <div class="bg-shape"></div>
+    <div class="container">
+      <div id="error-banner" style="display: none; padding: 12px 14px; margin-bottom: 16px; border-radius: 12px; background: #3a1f1f; color: #ffd7d7; border: 1px solid #5a2b2b;">
+        Error loading status.
+      </div>
+
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="app-icon">CS</div>
+          <div class="topbar-title">
+            <div class="title">Settings</div>
+            <div class="subtitle">Link your GitHub + LeetCode accounts</div>
+          </div>
+        </div>
+      </header>
+
+      <section class="card settings ios-tap ios-card">
+        <h2>Handles</h2>
+        <div class="goal-grid">
+          <div class="goal-item">
+            <label>GitHub username</label>
+            <input type="text" id="settings-github" placeholder="octocat" autocomplete="off" />
+          </div>
+          <div class="goal-item">
+            <label>LeetCode username</label>
+            <input type="text" id="settings-leetcode" placeholder="leetcode_user" autocomplete="off" />
+          </div>
+        </div>
+        <div class="setup-error" id="setup-error" aria-live="polite"></div>
+        <button class="primary ios-tap ios-button" id="settings-save" type="button">Save handles</button>
+      </section>
+
+      <nav class="bottom-nav">
+        <button class="nav-btn ios-tap ios-button" type="button" data-nav="/"><span>Dashboard</span></button>
+        <button class="nav-btn ios-tap ios-button" type="button" data-nav="/status"><span>Status</span></button>
+        <button class="nav-btn ios-tap ios-button is-active" type="button" data-nav="/settings"><span>Settings</span></button>
+      </nav>
+    </div>
+
+    <div class="loading-overlay" id="loading-overlay" aria-hidden="true">
+      <div class="spinner" role="status" aria-label="Loading"></div>
+    </div>
+
+    <script>
+      window.__BOT_USERNAME__ = "{{ bot_username }}";
+    </script>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

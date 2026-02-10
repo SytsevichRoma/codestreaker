@@ -21,6 +21,7 @@ router = Router()
 class SettingsState(StatesGroup):
     github = State()
     leetcode = State()
+    handles = State()
     repos = State()
     goals = State()
     reminders = State()
@@ -30,7 +31,13 @@ class SettingsState(StatesGroup):
 async def start_handler(message: Message) -> None:
     user = await repo.get_user(message.from_user.id)
     if not user:
-        await repo.create_user(message.from_user.id, settings.timezone_default)
+        await repo.create_user_if_missing(
+            message.from_user.id,
+            settings.timezone_default,
+            message.from_user.username,
+            message.from_user.first_name,
+            message.from_user.last_name,
+        )
     if scheduler_instance:
         await scheduler_instance.schedule_for_user(message.from_user.id)
     note = ""
@@ -42,7 +49,7 @@ async def start_handler(message: Message) -> None:
     )
 
 
-@router.message(Command("connect_github"))
+@router.message(Command("connect_github", "setgithub"))
 async def connect_github(message: Message, state: FSMContext) -> None:
     await state.set_state(SettingsState.github)
     await message.answer("Send your GitHub username:")
@@ -51,12 +58,21 @@ async def connect_github(message: Message, state: FSMContext) -> None:
 @router.message(SettingsState.github)
 async def github_username_handler(message: Message, state: FSMContext) -> None:
     username = message.text.strip()
+    user = await repo.get_user(message.from_user.id)
+    if not user:
+        await repo.create_user_if_missing(
+            message.from_user.id,
+            settings.timezone_default,
+            message.from_user.username,
+            message.from_user.first_name,
+            message.from_user.last_name,
+        )
     await repo.set_github_username(message.from_user.id, username)
     await state.clear()
     await message.answer(f"✅ GitHub username saved: {username}")
 
 
-@router.message(Command("connect_leetcode"))
+@router.message(Command("connect_leetcode", "setleetcode"))
 async def connect_leetcode(message: Message, state: FSMContext) -> None:
     await state.set_state(SettingsState.leetcode)
     await message.answer("Send your LeetCode username:")
@@ -65,6 +81,15 @@ async def connect_leetcode(message: Message, state: FSMContext) -> None:
 @router.message(SettingsState.leetcode)
 async def leetcode_username_handler(message: Message, state: FSMContext) -> None:
     username = message.text.strip()
+    user = await repo.get_user(message.from_user.id)
+    if not user:
+        await repo.create_user_if_missing(
+            message.from_user.id,
+            settings.timezone_default,
+            message.from_user.username,
+            message.from_user.first_name,
+            message.from_user.last_name,
+        )
     await repo.set_leetcode_username(message.from_user.id, username)
     await state.clear()
     await message.answer(f"✅ LeetCode username saved: {username}")
@@ -139,6 +164,7 @@ async def status_button_handler(message: Message) -> None:
 async def settings_button_handler(message: Message) -> None:
     await message.answer(
         "Use commands:\n"
+        "/set\n"
         "/connect_github\n/connect_leetcode\n/repos\n/goals\n/reminders"
     )
 
@@ -146,7 +172,13 @@ async def settings_button_handler(message: Message) -> None:
 async def _send_status(message: Message) -> None:
     user = await repo.get_user(message.from_user.id)
     if not user:
-        user = await repo.create_user(message.from_user.id, settings.timezone_default)
+        user = await repo.create_user_if_missing(
+            message.from_user.id,
+            settings.timezone_default,
+            message.from_user.username,
+            message.from_user.first_name,
+            message.from_user.last_name,
+        )
     tz_name = user["tz"]
     goals = json.loads(user["goals_json"])
     repos = json.loads(user["repos_json"])
@@ -181,3 +213,29 @@ async def _send_status(message: Message) -> None:
         f"Streak: {streak_info['current_streak']} (best {streak_info['best_streak']})"
     )
     await message.answer(text)
+@router.message(Command("set"))
+async def set_handles(message: Message, state: FSMContext) -> None:
+    user = await repo.get_user(message.from_user.id)
+    if not user:
+        await repo.create_user_if_missing(
+            message.from_user.id,
+            settings.timezone_default,
+            message.from_user.username,
+            message.from_user.first_name,
+            message.from_user.last_name,
+        )
+    await state.set_state(SettingsState.handles)
+    await message.answer("Send GitHub and LeetCode usernames as: github_username, leetcode_username")
+
+
+@router.message(SettingsState.handles)
+async def set_handles_save(message: Message, state: FSMContext) -> None:
+    text = message.text.strip()
+    parts = [p.strip() for p in text.split(",") if p.strip()]
+    if len(parts) != 2:
+        await message.answer("Invalid format. Example: torvalds, leetcode_user")
+        return
+    gh_user, lc_user = parts
+    await repo.update_user_handles(message.from_user.id, gh_user, lc_user)
+    await state.clear()
+    await message.answer(f"✅ Saved GitHub: {gh_user} | LeetCode: {lc_user}")

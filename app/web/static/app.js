@@ -14,7 +14,7 @@ const state = {
   historyTz: "Europe/Kyiv",
 };
 
-const botUsername = window.__BOT_USERNAME__ || "";
+const pageType = document.body ? document.body.dataset.page || "" : "";
 
 let loadingCount = 0;
 
@@ -93,6 +93,40 @@ function clearError() {
   const banner = document.getElementById("error-banner");
   if (!banner) return;
   banner.style.display = "none";
+}
+
+function flashTap(el) {
+  if (!el) return;
+  el.classList.remove("tap-flash");
+  void el.offsetWidth;
+  el.classList.add("tap-flash");
+}
+
+function setSetupError(message) {
+  const el = document.getElementById("setup-error");
+  if (!el) return;
+  el.textContent = message || "";
+}
+
+function showSetup(data = {}) {
+  const backdrop = document.getElementById("setup-backdrop");
+  const card = document.getElementById("setup-card");
+  if (!backdrop || !card) return;
+  const ghInput = document.getElementById("setup-github");
+  const lcInput = document.getElementById("setup-leetcode");
+  if (ghInput && data.github_username) ghInput.value = data.github_username;
+  if (lcInput && data.leetcode_username) lcInput.value = data.leetcode_username;
+  setSetupError("");
+  backdrop.classList.add("is-visible");
+  card.classList.add("is-visible");
+}
+
+function hideSetup() {
+  const backdrop = document.getElementById("setup-backdrop");
+  const card = document.getElementById("setup-card");
+  if (!backdrop || !card) return;
+  backdrop.classList.remove("is-visible");
+  card.classList.remove("is-visible");
 }
 
 function setHeatmapMessage(message) {
@@ -388,18 +422,59 @@ async function loadStatus(force = false) {
   if (!state.initData) {
     console.warn("Missing Telegram initData; open inside Telegram.");
     showError("WebApp init data missing. Open this dashboard from Telegram.");
-    document.getElementById("date").textContent = "Open inside Telegram";
+    const dateEl = document.getElementById("date");
+    if (dateEl) dateEl.textContent = "Open inside Telegram";
     setHeatmapMessage("Open inside Telegram to see this week.");
     return;
   }
   clearError();
   try {
     const data = await apiGet("/api/status", { force: force ? 1 : undefined });
-    fillStatus(data);
-    await loadHistory();
+    if (data.needs_setup) {
+      if (data.avatar) {
+        state.avatar = data.avatar;
+        renderAvatarBadge();
+      }
+      if (pageType !== "settings") {
+        window.location.href = "/settings";
+        return;
+      }
+      setSetupError("Add your GitHub + LeetCode handles to continue.");
+      return;
+    }
+    if (pageType !== "settings") {
+      fillStatus(data);
+      if (pageType === "dashboard") {
+        await loadHistory();
+      }
+    } else {
+      const ghInput = document.getElementById("settings-github");
+      const lcInput = document.getElementById("settings-leetcode");
+      if (ghInput && data.github_username !== undefined) ghInput.value = data.github_username || "";
+      if (lcInput && data.leetcode_username !== undefined) lcInput.value = data.leetcode_username || "";
+    }
   } catch (err) {
     console.error("Failed to load status:", err);
     showError("Failed to load status. Please try again.");
+  }
+}
+
+async function saveSetup() {
+  const ghInput = document.getElementById("setup-github");
+  const lcInput = document.getElementById("setup-leetcode");
+  const github_username = ghInput ? ghInput.value.trim() : "";
+  const leetcode_username = lcInput ? lcInput.value.trim() : "";
+  if (!github_username || !leetcode_username) {
+    setSetupError("Please enter both GitHub and LeetCode usernames.");
+    return;
+  }
+  try {
+    await apiPost("/api/settings", { github_username, leetcode_username });
+    hideSetup();
+    await loadStatus(true);
+  } catch (err) {
+    console.error("Failed to save handles:", err);
+    setSetupError("Failed to save. Please try again.");
   }
 }
 
@@ -425,10 +500,27 @@ async function saveRepos() {
   await loadStatus();
 }
 
-function openBotLink(command) {
-  if (!botUsername) return;
-  const url = `https://t.me/${botUsername}?start=${command}`;
-  if (tg) tg.openTelegramLink(url);
+async function saveHandles() {
+  const ghInput = document.getElementById("settings-github");
+  const lcInput = document.getElementById("settings-leetcode");
+  const github_username = ghInput ? ghInput.value.trim() : "";
+  const leetcode_username = lcInput ? lcInput.value.trim() : "";
+  if (!github_username || !leetcode_username) {
+    setSetupError("Please enter both GitHub and LeetCode usernames.");
+    return;
+  }
+  try {
+    await apiPost("/api/settings", { github_username, leetcode_username });
+    setSetupError("");
+    if (pageType === "settings") {
+      window.location.href = "/status";
+    } else {
+      await loadStatus(true);
+    }
+  } catch (err) {
+    console.error("Failed to save handles:", err);
+    setSetupError("Failed to save. Please try again.");
+  }
 }
 
 function triggerHapticLight() {
@@ -527,16 +619,56 @@ function initIosTap() {
 
 document.addEventListener("DOMContentLoaded", () => {
   renderAvatarBadge();
-  document.getElementById("btnRefresh").addEventListener("click", () => loadStatus(true));
-  document.getElementById("save-goals").addEventListener("click", saveGoals);
-  document.getElementById("save-reminders").addEventListener("click", saveReminders);
-  document.getElementById("save-repos").addEventListener("click", saveRepos);
-  document.getElementById("open-settings").addEventListener("click", () => openBotLink("settings"));
-  document.getElementById("open-status").addEventListener("click", () => openBotLink("status"));
-  document.getElementById("btnAvatar").addEventListener("click", openAvatarSheet);
-  document.getElementById("avatar-backdrop").addEventListener("click", closeAvatarSheet);
-  document.getElementById("insight-backdrop").addEventListener("click", closeInsight);
-  document.getElementById("insight-close").addEventListener("click", closeInsight);
+  const btnRefresh = document.getElementById("btnRefresh");
+  if (btnRefresh) {
+    btnRefresh.addEventListener("click", (event) => {
+      flashTap(event.currentTarget);
+      loadStatus(true);
+    });
+  }
+  const setupSave = document.getElementById("setup-save");
+  if (setupSave) {
+    setupSave.addEventListener("click", (event) => {
+      flashTap(event.currentTarget);
+      saveSetup();
+    });
+  }
+  const settingsSave = document.getElementById("settings-save");
+  if (settingsSave) {
+    settingsSave.addEventListener("click", (event) => {
+      flashTap(event.currentTarget);
+      saveHandles();
+    });
+  }
+  const saveGoalsBtn = document.getElementById("save-goals");
+  if (saveGoalsBtn) {
+    saveGoalsBtn.addEventListener("click", (event) => {
+      flashTap(event.currentTarget);
+      saveGoals();
+    });
+  }
+  const saveRemindersBtn = document.getElementById("save-reminders");
+  if (saveRemindersBtn) {
+    saveRemindersBtn.addEventListener("click", (event) => {
+      flashTap(event.currentTarget);
+      saveReminders();
+    });
+  }
+  const saveReposBtn = document.getElementById("save-repos");
+  if (saveReposBtn) {
+    saveReposBtn.addEventListener("click", (event) => {
+      flashTap(event.currentTarget);
+      saveRepos();
+    });
+  }
+  const btnAvatar = document.getElementById("btnAvatar");
+  if (btnAvatar) btnAvatar.addEventListener("click", openAvatarSheet);
+  const avatarBackdrop = document.getElementById("avatar-backdrop");
+  if (avatarBackdrop) avatarBackdrop.addEventListener("click", closeAvatarSheet);
+  const insightBackdrop = document.getElementById("insight-backdrop");
+  if (insightBackdrop) insightBackdrop.addEventListener("click", closeInsight);
+  const insightClose = document.getElementById("insight-close");
+  if (insightClose) insightClose.addEventListener("click", closeInsight);
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       closeAvatarSheet();
@@ -544,7 +676,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  document.querySelectorAll("[data-nav]").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      const target = event.currentTarget;
+      const path = target.getAttribute("data-nav");
+      if (!path) return;
+      flashTap(target);
+      showLoading();
+      window.setTimeout(() => {
+        window.location.href = path;
+      }, 120);
+    });
+  });
+
   initIosTap();
   setSegmentDefaults();
-  loadStatus();
+  if (pageType === "dashboard" || pageType === "status" || pageType === "settings") {
+    loadStatus();
+  }
 });

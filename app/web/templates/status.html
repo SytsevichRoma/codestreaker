@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CodeStreaker · Status</title>
+    <link rel="icon" href="/static/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" href="/static/favicon.png" />
+    <link rel="apple-touch-icon" href="/static/favicon.png" />
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  </head>
+  <body data-page="status">
+    <div class="bg-shape"></div>
+    <div class="container">
+      <div id="error-banner" style="display: none; padding: 12px 14px; margin-bottom: 16px; border-radius: 12px; background: #3a1f1f; color: #ffd7d7; border: 1px solid #5a2b2b;">
+        Error loading status.
+      </div>
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="app-icon">CS</div>
+          <div class="topbar-title">
+            <div class="title">Status</div>
+            <div class="subtitle">Today’s progress snapshot</div>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button class="pill-btn ios-tap ios-button" id="btnRefresh" type="button">
+            <span class="pill-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M20 12a8 8 0 1 1-2.34-5.66" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                <path d="M20 4v6h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </span>
+            <span>Refresh</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="card status ios-tap ios-card">
+        <div class="card-header">
+          <h2>Today</h2>
+          <span id="date">—</span>
+        </div>
+        <div class="metrics">
+          <div class="metric">
+            <div class="metric-top">
+              <div class="metric-ring ring-github" data-ring="github">
+                <svg class="ring-svg" viewBox="0 0 52 52" aria-hidden="true">
+                  <circle class="ring-track" cx="26" cy="26" r="22"></circle>
+                  <circle class="ring-progress" cx="26" cy="26" r="22"></circle>
+                </svg>
+                <div class="ring-label" id="github-ring-label">0/0</div>
+              </div>
+              <div class="metric-main">
+                <div class="metric-title">GitHub commits</div>
+                <div class="metric-value" id="github">0</div>
+                <div class="metric-goal" id="github-goal">/0</div>
+              </div>
+            </div>
+          </div>
+          <div class="metric">
+            <div class="metric-top">
+              <div class="metric-ring ring-leetcode" data-ring="leetcode">
+                <svg class="ring-svg" viewBox="0 0 52 52" aria-hidden="true">
+                  <circle class="ring-track" cx="26" cy="26" r="22"></circle>
+                  <circle class="ring-progress" cx="26" cy="26" r="22"></circle>
+                </svg>
+                <div class="ring-label" id="leetcode-ring-label">0/0</div>
+              </div>
+              <div class="metric-main">
+                <div class="metric-title">LeetCode solved</div>
+                <div class="metric-value" id="leetcode">0</div>
+                <div class="metric-goal" id="leetcode-goal">/0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="streaks">
+          <div class="streak-card">
+            <div>Current streak</div>
+            <div class="streak-num" id="current-streak">0</div>
+          </div>
+          <div class="streak-card">
+            <div>Best streak</div>
+            <div class="streak-num" id="best-streak">0</div>
+          </div>
+        </div>
+      </section>
+
+      <nav class="bottom-nav">
+        <button class="nav-btn ios-tap ios-button" type="button" data-nav="/"><span>Dashboard</span></button>
+        <button class="nav-btn ios-tap ios-button is-active" type="button" data-nav="/status"><span>Status</span></button>
+        <button class="nav-btn ios-tap ios-button" type="button" data-nav="/settings"><span>Settings</span></button>
+      </nav>
+    </div>
+
+    <div class="loading-overlay" id="loading-overlay" aria-hidden="true">
+      <div class="spinner" role="status" aria-label="Loading"></div>
+    </div>
+
+    <script>
+      window.__BOT_USERNAME__ = "{{ bot_username }}";
+    </script>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

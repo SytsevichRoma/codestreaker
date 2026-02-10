@@ -44,18 +44,18 @@ Set env vars:
 - `BOT_TOKEN`
 - `SECRET_KEY`
 - `GITHUB_TOKEN`
-- `GITHUB_USERNAME`
-- `LEETCODE_USERNAME`
 - `BOT_USERNAME`
 - `BASE_URL`
-- `TZ`
-- `REMINDERS`
-- `GOALS`
+- `DATABASE_URL` (Postgres; required to persist history/heatmap on Render)
 
 Telegram requires HTTPS, so `BASE_URL` should be your Render URL.
 
+### Render: set DATABASE_URL (Postgres) to persist history
+Render’s default filesystem is ephemeral, so SQLite history resets on restarts. Provision a Postgres database and set `DATABASE_URL` to keep daily snapshots and heatmaps intact.
+
 ## Bot Commands
 - `/start` - create user + show menu
+- `/set` - set GitHub + LeetCode usernames (format: `github, leetcode`)
 - `/connect_github` - set GitHub username
 - `/connect_leetcode` - set LeetCode username
 - `/repos` - set tracked repos (comma-separated owner/repo). Empty = any repo
