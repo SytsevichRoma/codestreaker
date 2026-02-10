@@ -108,27 +108,6 @@ function setSetupError(message) {
   el.textContent = message || "";
 }
 
-function showSetup(data = {}) {
-  const backdrop = document.getElementById("setup-backdrop");
-  const card = document.getElementById("setup-card");
-  if (!backdrop || !card) return;
-  const ghInput = document.getElementById("setup-github");
-  const lcInput = document.getElementById("setup-leetcode");
-  if (ghInput && data.github_username) ghInput.value = data.github_username;
-  if (lcInput && data.leetcode_username) lcInput.value = data.leetcode_username;
-  setSetupError("");
-  backdrop.classList.add("is-visible");
-  card.classList.add("is-visible");
-}
-
-function hideSetup() {
-  const backdrop = document.getElementById("setup-backdrop");
-  const card = document.getElementById("setup-card");
-  if (!backdrop || !card) return;
-  backdrop.classList.remove("is-visible");
-  card.classList.remove("is-visible");
-}
-
 function setHeatmapMessage(message) {
   const el = document.getElementById("heatmap-message");
   if (!el) return;
@@ -395,6 +374,10 @@ async function loadHistory() {
   }
   try {
     const data = await apiGet("/api/history", { days: 7 });
+    if (data.needs_setup) {
+      setHeatmapMessage("Add your GitHub + LeetCode handles to see history.");
+      return;
+    }
     renderHeatmap(data);
   } catch (err) {
     console.error("Failed to load history:", err);
@@ -450,31 +433,16 @@ async function loadStatus(force = false) {
     } else {
       const ghInput = document.getElementById("settings-github");
       const lcInput = document.getElementById("settings-leetcode");
+      const ghGoalInput = document.getElementById("settings-goal-github");
+      const lcGoalInput = document.getElementById("settings-goal-leetcode");
       if (ghInput && data.github_username !== undefined) ghInput.value = data.github_username || "";
       if (lcInput && data.leetcode_username !== undefined) lcInput.value = data.leetcode_username || "";
+      if (ghGoalInput && data.goals) ghGoalInput.value = data.goals.github_commits;
+      if (lcGoalInput && data.goals) lcGoalInput.value = data.goals.leetcode_solved;
     }
   } catch (err) {
     console.error("Failed to load status:", err);
     showError("Failed to load status. Please try again.");
-  }
-}
-
-async function saveSetup() {
-  const ghInput = document.getElementById("setup-github");
-  const lcInput = document.getElementById("setup-leetcode");
-  const github_username = ghInput ? ghInput.value.trim() : "";
-  const leetcode_username = lcInput ? lcInput.value.trim() : "";
-  if (!github_username || !leetcode_username) {
-    setSetupError("Please enter both GitHub and LeetCode usernames.");
-    return;
-  }
-  try {
-    await apiPost("/api/settings", { github_username, leetcode_username });
-    hideSetup();
-    await loadStatus(true);
-  } catch (err) {
-    console.error("Failed to save handles:", err);
-    setSetupError("Failed to save. Please try again.");
   }
 }
 
@@ -503,14 +471,24 @@ async function saveRepos() {
 async function saveHandles() {
   const ghInput = document.getElementById("settings-github");
   const lcInput = document.getElementById("settings-leetcode");
+  const ghGoalInput = document.getElementById("settings-goal-github");
+  const lcGoalInput = document.getElementById("settings-goal-leetcode");
   const github_username = ghInput ? ghInput.value.trim() : "";
   const leetcode_username = lcInput ? lcInput.value.trim() : "";
   if (!github_username || !leetcode_username) {
     setSetupError("Please enter both GitHub and LeetCode usernames.");
     return;
   }
+  const updates = { github_username, leetcode_username };
+  const ghGoalRaw = ghGoalInput ? ghGoalInput.value : "";
+  const lcGoalRaw = lcGoalInput ? lcGoalInput.value : "";
+  if (ghGoalRaw !== "" || lcGoalRaw !== "") {
+    const ghGoal = Number(ghGoalRaw || 0);
+    const lcGoal = Number(lcGoalRaw || 0);
+    updates.goals = { github_commits: ghGoal, leetcode_solved: lcGoal };
+  }
   try {
-    await apiPost("/api/settings", { github_username, leetcode_username });
+    await apiPost("/api/settings", updates);
     setSetupError("");
     if (pageType === "settings") {
       window.location.href = "/status";
@@ -624,13 +602,6 @@ document.addEventListener("DOMContentLoaded", () => {
     btnRefresh.addEventListener("click", (event) => {
       flashTap(event.currentTarget);
       loadStatus(true);
-    });
-  }
-  const setupSave = document.getElementById("setup-save");
-  if (setupSave) {
-    setupSave.addEventListener("click", (event) => {
-      flashTap(event.currentTarget);
-      saveSetup();
     });
   }
   const settingsSave = document.getElementById("settings-save");

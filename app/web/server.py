@@ -7,7 +7,7 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Query
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -26,7 +26,7 @@ app.mount("/static", StaticFiles(directory=str(base_dir / "static")), name="stat
 
 templates = Jinja2Templates(directory=str(base_dir / "templates"))
 
-_STATUS_TTL_SECONDS = 45
+_STATUS_TTL_SECONDS = 25
 _STATUS_CACHE: dict[tuple[int, str, str], tuple[int, float]] = {}
 
 
@@ -242,7 +242,7 @@ async def api_status(request: Request):
 
 
 @app.get("/api/history")
-async def api_history(request: Request, days: int = 7):
+async def api_history(request: Request, days: int = 7, init_data: str | None = Query(None, alias="initData")):
     user = await _get_user_from_init(request)
     telegram_id = int(user["id"])
     db_user = await repo.get_user(telegram_id)
@@ -256,6 +256,10 @@ async def api_history(request: Request, days: int = 7):
         )
 
     tz_name = db_user["tz"]
+    gh_user = _normalize_handle(db_user.get("github_username"))
+    lc_user = _normalize_handle(db_user.get("leetcode_username"))
+    if not gh_user or not lc_user:
+        return JSONResponse({"needs_setup": True, "timezone": tz_name})
     safe_days = max(1, min(int(days or 7), 31))
     today = now_in_tz(tz_name).date()
     start_date = today - timedelta(days=safe_days - 1)
@@ -279,6 +283,22 @@ async def api_history(request: Request, days: int = 7):
         )
 
     return JSONResponse({"tz": tz_name, "days": days_out})
+
+
+@app.get("/api/health")
+async def api_health():
+    db_ok = True
+    try:
+        await repo.fetchone("SELECT 1")
+    except Exception:
+        db_ok = False
+    return JSONResponse(
+        {
+            "ok": db_ok,
+            "db": db_ok,
+            "time": datetime.now(timezone.utc).isoformat(),
+        }
+    )
 
 
 @app.get("/healthz")

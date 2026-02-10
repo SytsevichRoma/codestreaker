@@ -8,7 +8,6 @@ from aiogram.types import Message
 
 from app.core.config import settings
 from app.db import repo
-from app.bot.keyboards import main_menu
 from app.services import github, leetcode, streaks
 from app.services.timeutils import now_in_tz, parse_time_hhmm
 from app.services.scheduler import scheduler_instance
@@ -44,8 +43,7 @@ async def start_handler(message: Message) -> None:
     if not settings.base_url.startswith("https://"):
         note = "\nWebApp dashboard requires HTTPS. Use ngrok or set BASE_URL to an https URL."
     await message.answer(
-        "Welcome to CodeStreaker!\nUse the buttons below or commands to configure." + note,
-        reply_markup=main_menu(settings.base_url),
+        "Welcome to CodeStreaker!\nOpen the Dashboard via the Menu button." + note,
     )
 
 
